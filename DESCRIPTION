@@ -1,0 +1,40 @@
+Package: eiCalibrate
+Title: Empirical Bayes Calibration for Ecological Inference
+Version: 0.3.0
+Authors@R: 
+    person("Loren", "Collingwood", email = "lcollingwood@unm.edu", role = c("aut", "cre"))
+Description: Tools for jointly tuning both Dirichlet concentration parameters
+    (lambda1, lambda2) in RxC ecological inference (as implemented in
+    'eiPack::ei.MD.bayes') against known benchmarks from a calibration
+    election, then applying the calibrated priors to a target election.
+    Supports both 1D (tied lambda1=lambda2) and 2D (independent) calibration
+    grids with optional replication averaging to smooth MCMC noise. Includes
+    unified wrappers for 'eiPack' RxC, 'eiCompare' iterative 2x2, and
+    Goodman's ecological regression, plus sensitivity-sweep and multi-method
+    comparison utilities. Intended for Voting Rights Act-style racially
+    polarized voting analysis where the standard prior may over-shrink
+    estimates toward the pooled mean under low-data conditions.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
+Depends:
+    R (>= 4.0.0)
+Imports:
+    eiPack,
+    eiCompare,
+    coda,
+    stats,
+    utils
+Suggests:
+    testthat (>= 3.0.0),
+    knitr,
+    rmarkdown,
+    ggplot2,
+    scales,
+    dplyr,
+    tidyr
+Config/testthat/edition: 3
+URL: https://github.com/lorenc5/eiCalibrate
+BugReports: https://github.com/lorenc5/eiCalibrate/issues

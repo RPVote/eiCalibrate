@@ -46,7 +46,7 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Loren Collingwood \email{loren@unm.edu}
+\strong{Maintainer}: Loren Collingwood \email{lcollingwood@unm.edu}
 
 }
 \keyword{internal}

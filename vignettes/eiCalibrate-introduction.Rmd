@@ -1,0 +1,355 @@
+---
+title: "Getting Started with eiCalibrate"
+author: "Loren Collingwood"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting Started with eiCalibrate}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5
+)
+```
+
+## Overview
+
+**eiCalibrate** provides tools for empirical Bayes calibration of Dirichlet
+priors in RxC ecological inference. In Voting Rights Act (VRA) litigation and
+related racially polarized voting (RPV) analyses, ecological inference (EI)
+estimates can be sensitive to the choice of prior. This package lets you:
+
+1. **Simulate** benchmark election data with known ground truth
+2. **Fit** ecological inference models via a unified interface (RxC Bayesian,
+   iterative 2x2, Goodman's regression)
+3. **Calibrate** Dirichlet concentration parameters against a known benchmark
+4. **Sweep** prior sensitivity without ground truth
+5. **Compare** methods side by side
+6. **Cross-validate** via leave-one-out CV
+7. **Visualize** all of the above
+
+The core idea: use a calibration election where ground truth is available (e.g.,
+from exit polls or a racially uncontested contest) to learn good hyperparameter
+values, then apply those calibrated priors to the target election of interest.
+
+## Installation
+
+```{r install, eval = FALSE}
+# From a local source directory:
+devtools::install("/path/to/eiCalibrate")
+
+# Or from GitHub:
+devtools::install_github("lorenc5/eiCalibrate")
+```
+
+## Quick Start: Simulated Data
+
+### Step 1: Simulate an Election
+
+`simulate_election()` generates precinct-level data with known group-conditional
+voting rates. This is useful for testing and benchmarking.
+
+```{r simulate}
+library(eiCalibrate)
+
+dat <- simulate_election(
+  n_precincts = 40,
+  true_support = matrix(
+    c(0.80, 0.20,
+      0.15, 0.85),
+    nrow = 2, byrow = TRUE,
+    dimnames = list(c("white", "black"), c("cand_A", "cand_B"))
+  ),
+  seed = 42
+)
+
+head(dat)
+```
+
+The true support matrix is stored as an attribute:
+
+```{r truth}
+(truth <- attr(dat, "true_support"))
+```
+
+### Step 2: Fit a Single Model
+
+`fit_ei()` is the unified interface for all three EI methods. It accepts a
+consistent set of column-name arguments.
+
+**Goodman's ecological regression** (fast, no MCMC):
+
+```{r goodman}
+fit_good <- fit_ei(
+  dat,
+  method    = "goodman",
+  race_cols = c("white", "black"),
+  cand_cols = c("cand_A", "cand_B"),
+  totals_col = "total"
+)
+
+fit_good$estimates
+```
+
+**Iterative 2x2 EI** (via eiCompare):
+
+```{r iter, message = FALSE, warning = FALSE}
+fit_it <- fit_ei(
+  dat,
+  method    = "iter",
+  race_cols = c("white", "black"),
+  cand_cols = c("cand_A", "cand_B"),
+  totals_col = "total"
+)
+
+fit_it$estimates
+```
+
+**RxC Bayesian EI** (via eiPack --- slower, uses MCMC):
+
+```{r rxc, message = FALSE, warning = FALSE, results = "hide"}
+fit_rxc <- fit_ei(
+  dat,
+  method     = "rxc",
+  race_cols  = c("white", "black"),
+  cand_cols  = c("cand_A", "cand_B"),
+  totals_col = "total",
+  lambda1    = 4,
+  lambda2    = 2,
+  sample     = 10000,
+  burnin     = 5000,
+  thin       = 5,
+  verbose    = FALSE
+)
+```
+
+```{r rxc-show}
+fit_rxc$estimates$point
+```
+
+### Step 3: Score Against Truth
+
+```{r score}
+score_estimates(fit_good$estimates, truth)
+score_estimates(fit_rxc$estimates$point, truth)
+```
+
+## Calibrating the Prior
+
+The key contribution of this package is calibrating the Dirichlet concentration
+parameters $\lambda_1$ and $\lambda_2$ in `eiPack::ei.MD.bayes()`. The
+calibration procedure sweeps a grid of $(\lambda_1, \lambda_2)$ values and
+selects the pair that minimizes RMSE (or another loss) against a known benchmark.
+
+### 1D Calibration (tied $\lambda_1 = \lambda_2$)
+
+When you supply only `lambda_grid`, both concentration parameters are tied:
+
+```{r calib-1d, message = FALSE, warning = FALSE, results = "hide"}
+cal_1d <- calibrate_rxc(
+  calib_data  = dat,
+  calib_truth = truth,
+  lambda_grid = c(0.1, 0.5, 1, 2, 4),
+  sample      = 10000,
+  burnin      = 5000,
+  thin        = 5,
+  verbose     = FALSE
+)
+```
+
+```{r calib-1d-show}
+cal_1d$summary
+cal_1d$best_lambda1
+```
+
+### 2D Joint Calibration (independent $\lambda_1$, $\lambda_2$)
+
+For finer control, supply separate grids. This explores the full
+$\lambda_1 \times \lambda_2$ surface:
+
+```{r calib-2d, eval = FALSE}
+cal_2d <- calibrate_rxc(
+  calib_data   = dat,
+  calib_truth  = truth,
+  lambda1_grid = c(0.1, 0.5, 1, 2),
+  lambda2_grid = c(0.25, 0.5, 1, 2),
+  n_reps       = 3,
+  sample       = 25000,
+  burnin       = 5000,
+  thin         = 10,
+  verbose      = TRUE
+)
+
+cal_2d$best_lambda1
+cal_2d$best_lambda2
+cal_2d$rmse_matrix
+```
+
+The `n_reps` argument averages over multiple MCMC runs at each grid point to
+smooth out MCMC noise.
+
+### Visualizing Calibration Results
+
+```{r plot-calib-1d, fig.cap = "1D calibration: RMSE vs. lambda"}
+library(ggplot2)
+plot_calibration(cal_1d)
+```
+
+For 2D results, `plot_calibration()` produces a heatmap:
+
+```{r plot-calib-2d, eval = FALSE}
+plot_calibration(cal_2d)
+```
+
+## Sensitivity Analysis
+
+When ground truth is unavailable, `sensitivity_sweep()` shows how estimates
+change across prior strengths. This is useful for assessing whether conclusions
+are robust.
+
+```{r sweep, message = FALSE, warning = FALSE, results = "hide"}
+sw <- sensitivity_sweep(
+  dat,
+  lambda_grid = c(0.1, 0.5, 1, 4),
+  race_cols   = c("white", "black"),
+  cand_cols   = c("cand_A", "cand_B"),
+  totals_col  = "total",
+  sample      = 10000,
+  burnin      = 5000,
+  thin        = 5,
+  verbose     = FALSE
+)
+```
+
+```{r plot-sweep, fig.cap = "Black support for Candidate A across prior values"}
+plot_sensitivity(sw, cell = c("black", "cand_A"))
+```
+
+## Comparing Methods
+
+`compare_methods()` runs multiple EI approaches on the same dataset and returns
+a single data frame for easy comparison:
+
+```{r compare, message = FALSE, warning = FALSE, results = "hide"}
+comp <- compare_methods(
+  dat,
+  calibrated_lambda1 = cal_1d$best_lambda1,
+  calibrated_lambda2 = cal_1d$best_lambda2,
+  truth = truth,
+  race_cols  = c("white", "black"),
+  cand_cols  = c("cand_A", "cand_B"),
+  totals_col = "total",
+  sample     = 10000,
+  burnin     = 5000,
+  thin       = 5,
+  verbose    = FALSE
+)
+```
+
+```{r compare-show}
+comp
+```
+
+```{r plot-compare, fig.cap = "Method comparison with ground truth"}
+plot_comparison(comp)
+```
+
+## Leave-One-Out Cross-Validation
+
+`loo_cv()` provides a principled way to compare methods without ground truth.
+It holds out one precinct at a time, fits on the remaining data, predicts the
+held-out precinct's vote share, and evaluates prediction error.
+
+Goodman's regression is fast enough for a full LOO:
+
+```{r loocv-goodman}
+cv_good <- loo_cv(
+  dat,
+  methods    = "goodman",
+  race_cols  = c("white", "black"),
+  cand_cols  = c("cand_A", "cand_B"),
+  totals_col = "total",
+  verbose    = FALSE
+)
+
+cv_good$summary
+```
+
+For MCMC-based methods, LOO-CV is computationally expensive (one fit per
+precinct per method). A typical call:
+
+```{r loocv-full, eval = FALSE}
+cv_all <- loo_cv(
+  dat,
+  methods = c("goodman", "rxc_default", "rxc_calibrated"),
+  race_cols  = c("white", "black"),
+  cand_cols  = c("cand_A", "cand_B"),
+  totals_col = "total",
+  calibrated_lambda1 = cal_1d$best_lambda1,
+  calibrated_lambda2 = cal_1d$best_lambda2,
+  sample  = 10000,
+  burnin  = 5000,
+  thin    = 5,
+  verbose = TRUE
+)
+
+cv_all$summary
+```
+
+### Visualizing CV Results
+
+```{r plot-loocv-summary, fig.cap = "LOO-CV summary: RMSE and MAE by method"}
+plot_loocv(cv_good, type = "summary")
+```
+
+```{r plot-loocv-precinct, fig.cap = "LOO-CV: per-precinct prediction errors"}
+plot_loocv(cv_good, type = "precinct")
+```
+
+## Recommended Workflow
+
+A typical analysis proceeds in stages:
+
+1. **Identify a calibration election** where group-conditional truth is known
+   (e.g., an uncontested race, exit poll data, or a BISG-validated contest).
+
+2. **Run `calibrate_rxc()`** on the calibration data to find optimal
+   $(\lambda_1^*, \lambda_2^*)$. Start with 1D calibration; move to 2D if
+   $\lambda_2$ sensitivity matters.
+
+3. **Validate with `loo_cv()`** to confirm calibrated priors improve predictive
+   accuracy over the default.
+
+4. **Run `sensitivity_sweep()`** on the target election to check robustness of
+   conclusions across a range of priors.
+
+5. **Run `compare_methods()`** on the target election to show convergence (or
+   divergence) across Goodman, iterative EI, and RxC with both default and
+   calibrated priors.
+
+6. **Visualize** with `plot_calibration()`, `plot_sensitivity()`,
+   `plot_comparison()`, and `plot_loocv()` for reports and expert testimony.
+
+## Methodological Caution
+
+Calibrating the prior is **only defensible** when:
+
+- The calibration ground truth is genuinely credible.
+- The calibration election has comparable dynamics to the target election (similar
+  racial composition distribution, similar political context).
+- The calibration and target elections are **separate**. Calibrating on the same
+  election you analyze is circular.
+
+Always report the calibration procedure transparently in expert reports and
+litigation filings.
+
+## Session Info
+
+```{r sessioninfo}
+sessionInfo()
+```

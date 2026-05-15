@@ -188,19 +188,45 @@ iter_to_matrix <- function(iter_fit, row_names, col_names) {
     }
   }
 
-  # Case 2: long format - look for "mean" / "estimate" columns and parse labels
+  # Case 2: long format with separate cand and race columns
   est_col <- intersect(c("mean", "Mean", "estimate", "Estimate",
                          "point", "value"), colnames(est_df))[1]
+  cand_col <- intersect(c("cand", "Cand", "candidate", "Candidate"),
+                        colnames(est_df))[1]
+  race_col2 <- intersect(c("race", "Race", "group", "Group"),
+                         colnames(est_df))[1]
+
+  if (!is.na(est_col) && !is.na(cand_col) && !is.na(race_col2)) {
+    # Both cand and race columns exist alongside a mean/estimate column
+    for (r in seq_along(row_names)) {
+      for (cc in seq_along(col_names)) {
+        # Match race: try pct_<name> and bare <name>
+        race_match <- est_df[[race_col2]] %in%
+          c(race_pct_cols[r], row_names[r],
+            paste0("n_", row_names[r]))
+        # Match candidate: try pct_<name>, cand_<name>, and bare <name>
+        cand_match <- est_df[[cand_col]] %in%
+          c(cand_pct_cols[cc], col_names[cc],
+            sub("^cand_", "", col_names[cc]))
+        idx <- which(race_match & cand_match)
+        if (length(idx) >= 1) {
+          mat[r, cc] <- as.numeric(est_df[idx[1], est_col])
+        }
+      }
+    }
+    if (!all(is.na(mat))) return(mat)
+  }
+
+  # Case 3: long format with combined label column (fallback)
   if (!is.na(est_col)) {
-    # First column usually has labels like "pct_white_pct_A"
     label_col <- colnames(est_df)[1]
     for (r in seq_along(row_names)) {
-      for (c in seq_along(col_names)) {
-        rx <- paste0("(?i)", race_pct_cols[r], ".*", cand_pct_cols[c],
-                     "|", row_names[r], ".*", col_names[c])
+      for (cc in seq_along(col_names)) {
+        rx <- paste0("(?i)", race_pct_cols[r], ".*", cand_pct_cols[cc],
+                     "|", row_names[r], ".*", col_names[cc])
         idx <- grep(rx, est_df[[label_col]], perl = TRUE)
         if (length(idx) >= 1) {
-          mat[r, c] <- as.numeric(est_df[idx[1], est_col])
+          mat[r, cc] <- as.numeric(est_df[idx[1], est_col])
         }
       }
     }

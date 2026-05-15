@@ -22,17 +22,17 @@ benchmark election, then apply that setting to your target election.
 
 ## Install
 
-From a local copy of the source tree:
+From GitHub:
 
 ```r
 # install.packages("devtools")
-devtools::install("path/to/eiCalibrate")
+devtools::install_github("lorenc5/eiCalibrate")
 ```
 
-Or from a tarball / zip:
+Or from a local copy of the source tree:
 
 ```r
-install.packages("eiCalibrate_0.1.0.tar.gz", repos = NULL, type = "source")
+devtools::install("path/to/eiCalibrate")
 ```
 
 Dependencies you need installed separately:
@@ -58,22 +58,31 @@ calib_data <- simulate_election(n_precincts = 40,
                                 seed = 42)
 
 # 2. Sweep prior strengths against the benchmark
+#    1D calibration (tied lambda1 = lambda2):
 calib_res <- calibrate_rxc(calib_data, calib_truth,
                            lambda_grid = c(0.1, 0.25, 0.5, 1, 2, 4))
 calib_res$summary
-calib_res$best_lambda
+calib_res$best_lambda1
+calib_res$best_lambda2
+
+#    2D joint calibration (independent lambda1, lambda2):
+# calib_res <- calibrate_rxc(calib_data, calib_truth,
+#                            lambda1_grid = c(0.1, 0.25, 0.5, 1, 2, 4),
+#                            lambda2_grid = c(0.25, 0.5, 1, 2),
+#                            n_reps = 3)
 
 # 3. Apply the calibrated prior to your target election
 target_fit <- fit_ei(target_data, method = "rxc",
-                     lambda1 = calib_res$best_lambda,
-                     lambda2 = calib_res$best_lambda)
+                     lambda1 = calib_res$best_lambda1,
+                     lambda2 = calib_res$best_lambda2)
 
 # 4. Compare to default RxC, ei_iter, and Goodman ER as a robustness check
 compare_methods(target_data,
-                calibrated_lambda = calib_res$best_lambda)
+                calibrated_lambda1 = calib_res$best_lambda1,
+                calibrated_lambda2 = calib_res$best_lambda2)
 ```
 
-See `inst/examples/worked_example.R` for the full pipeline.
+See `vignette("eiCalibrate-introduction")` for the full walkthrough.
 
 ## Methodological caveats
 

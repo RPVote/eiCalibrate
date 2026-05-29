@@ -1,4 +1,6 @@
 # eiCalibrate
+[![R build status](https://github.com/RPVote/eiCalibrate/workflows/R-CMD-check/badge.svg)](https://github.com/RPVote/eiCalibrate/actions?workflow=R-CMD-check)
+[![Style status](https://github.com/RPVote/eiCalibrate/workflows/Styler/badge.svg)](https://github.com/RPVote/eiCalibrate/actions?workflow=Styler)
 
 Empirical Bayes calibration for RxC ecological inference. Tune the Dirichlet
 prior in `eiPack::ei.MD.bayes()` against known benchmarks from a calibration

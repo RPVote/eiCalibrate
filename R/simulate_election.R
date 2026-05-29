@@ -37,23 +37,31 @@
 #' attr(dat, "true_support")
 #'
 #' # --- Custom truth matrix ---
-#' truth <- matrix(c(0.70, 0.30, 0.25, 0.75), nrow = 2, byrow = TRUE,
-#'                 dimnames = list(c("white", "black"),
-#'                                 c("cand_A", "cand_B")))
+#' truth <- matrix(c(0.70, 0.30, 0.25, 0.75),
+#'   nrow = 2, byrow = TRUE,
+#'   dimnames = list(
+#'     c("white", "black"),
+#'     c("cand_A", "cand_B")
+#'   )
+#' )
 #' dat2 <- simulate_election(n_precincts = 50, true_support = truth, seed = 2)
 #'
 #' # --- Polarized racial composition (U-shaped: mostly segregated precincts) ---
-#' dat_polar <- simulate_election(n_precincts = 40,
-#'                                composition_shape = c(0.5, 0.5),
-#'                                seed = 3)
-#' summary(dat_polar$pct_white)  # most precincts near 0 or 1
+#' dat_polar <- simulate_election(
+#'   n_precincts = 40,
+#'   composition_shape = c(0.5, 0.5),
+#'   seed = 3
+#' )
+#' summary(dat_polar$pct_white) # most precincts near 0 or 1
 #'
 #' # --- Homogeneous composition (all precincts ~50/50) ---
 #' # This creates a hard identification problem for EI methods
-#' dat_homo <- simulate_election(n_precincts = 40,
-#'                               composition_shape = c(50, 50),
-#'                               seed = 4)
-#' summary(dat_homo$pct_white)  # all precincts near 0.50
+#' dat_homo <- simulate_election(
+#'   n_precincts = 40,
+#'   composition_shape = c(50, 50),
+#'   seed = 4
+#' )
+#' summary(dat_homo$pct_white) # all precincts near 0.50
 #'
 #' # --- Higher noise (noisier precinct-level rates) ---
 #' dat_noisy <- simulate_election(n_precincts = 40, noise = 0.15, seed = 5)
@@ -61,22 +69,28 @@
 #' @export
 simulate_election <- function(n_precincts = 50,
                               true_support = matrix(
-                                c(0.80, 0.20,
-                                  0.15, 0.85),
+                                c(
+                                  0.80, 0.20,
+                                  0.15, 0.85
+                                ),
                                 nrow = 2, byrow = TRUE,
-                                dimnames = list(c("white", "black"),
-                                                c("cand_A", "cand_B"))),
+                                dimnames = list(
+                                  c("white", "black"),
+                                  c("cand_A", "cand_B")
+                                )
+                              ),
                               precinct_size_mean = 800,
                               precinct_size_sd = 100,
                               noise = 0.05,
                               composition_shape = c(2, 2),
                               seed = NULL) {
-
   if (!is.null(seed)) set.seed(seed)
 
-  stopifnot(is.matrix(true_support),
-            nrow(true_support) == 2,
-            ncol(true_support) == 2)
+  stopifnot(
+    is.matrix(true_support),
+    nrow(true_support) == 2,
+    ncol(true_support) == 2
+  )
   if (any(abs(rowSums(true_support) - 1) > 1e-8)) {
     warning("Rows of true_support do not sum to 1; rescaling.")
     true_support <- true_support / rowSums(true_support)
@@ -122,8 +136,8 @@ simulate_election <- function(n_precincts = 50,
 
   # Stash truth and naming for downstream use
   attr(out, "true_support") <- true_support
-  attr(out, "row_names")    <- row_names
-  attr(out, "col_names")    <- col_names
+  attr(out, "row_names") <- row_names
+  attr(out, "col_names") <- col_names
 
   out
 }

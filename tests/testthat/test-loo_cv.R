@@ -10,7 +10,7 @@ test_that("loo_cv returns correct structure with goodman method", {
   # Check precinct_errors
   pe <- cv$precinct_errors
   expect_s3_class(pe, "data.frame")
-  expect_equal(nrow(pe), 20)  # 20 precincts x 1 method
+  expect_equal(nrow(pe), 20) # 20 precincts x 1 method
   expect_named(pe, c("precinct", "method", "predicted", "actual", "error"))
   expect_true(all(pe$method == "goodman"))
   expect_true(all(!is.na(pe$error)))
@@ -63,11 +63,17 @@ test_that("loo_cv dem_col_idx = 2 works", {
 })
 
 test_that("loo_cv prediction errors are reasonable for clean data", {
-  truth <- matrix(c(0.80, 0.20, 0.20, 0.80), nrow = 2, byrow = TRUE,
-                  dimnames = list(c("white", "black"),
-                                  c("cand_A", "cand_B")))
-  dat <- simulate_election(n_precincts = 50, true_support = truth,
-                           noise = 0.02, seed = 10)
+  truth <- matrix(c(0.80, 0.20, 0.20, 0.80),
+    nrow = 2, byrow = TRUE,
+    dimnames = list(
+      c("white", "black"),
+      c("cand_A", "cand_B")
+    )
+  )
+  dat <- simulate_election(
+    n_precincts = 50, true_support = truth,
+    noise = 0.02, seed = 10
+  )
   cv <- loo_cv(dat, methods = "goodman", verbose = FALSE)
 
   # With 50 precincts and low noise, RMSE should be small

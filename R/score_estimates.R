@@ -12,9 +12,13 @@
 #'
 #' @examples
 #' # --- Basic scoring ---
-#' truth <- matrix(c(0.80, 0.20, 0.15, 0.85), nrow = 2, byrow = TRUE,
-#'                 dimnames = list(c("white", "black"),
-#'                                 c("cand_A", "cand_B")))
+#' truth <- matrix(c(0.80, 0.20, 0.15, 0.85),
+#'   nrow = 2, byrow = TRUE,
+#'   dimnames = list(
+#'     c("white", "black"),
+#'     c("cand_A", "cand_B")
+#'   )
+#' )
 #'
 #' # Simulated estimate close to truth
 #' set.seed(1)
@@ -23,8 +27,11 @@
 #'
 #' # Simulated estimate far from truth (50-50 across the board)
 #' est_bad <- matrix(0.5, 2, 2,
-#'                   dimnames = list(c("white", "black"),
-#'                                   c("cand_A", "cand_B")))
+#'   dimnames = list(
+#'     c("white", "black"),
+#'     c("cand_A", "cand_B")
+#'   )
+#' )
 #' score_estimates(est_bad, truth)
 #'
 #' # --- Using with fit_ei output ---

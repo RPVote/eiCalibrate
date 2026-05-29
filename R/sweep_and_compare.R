@@ -26,16 +26,18 @@
 #'
 #' # 1D sweep (lambda1 = lambda2)
 #' sweep_1d <- sensitivity_sweep(dat,
-#'                               lambda_grid = c(0.1, 0.5, 1, 2, 4),
-#'                               sample = 20000, burnin = 5000, thin = 10)
+#'   lambda_grid = c(0.1, 0.5, 1, 2, 4),
+#'   sample = 20000, burnin = 5000, thin = 10
+#' )
 #' sweep_1d$point_estimates
 #'
 #' # 2D sweep (independent lambda1 and lambda2)
 #' sweep_2d <- sensitivity_sweep(dat,
-#'                               lambda1_grid = c(0.1, 0.5, 1, 4),
-#'                               lambda2_grid = c(0.25, 1, 2, 8),
-#'                               sample = 20000, burnin = 5000, thin = 10)
-#' sweep_2d$point_estimates  # 4D array: [group, candidate, lambda1, lambda2]
+#'   lambda1_grid = c(0.1, 0.5, 1, 4),
+#'   lambda2_grid = c(0.25, 1, 2, 8),
+#'   sample = 20000, burnin = 5000, thin = 10
+#' )
+#' sweep_2d$point_estimates # 4D array: [group, candidate, lambda1, lambda2]
 #' }
 #'
 #' @export
@@ -44,64 +46,82 @@ sensitivity_sweep <- function(data,
                               lambda2_grid = NULL,
                               lambda_grid = c(0.1, 0.25, 0.5, 1, 2, 4),
                               ...) {
-
   use_2d <- !is.null(lambda1_grid) && !is.null(lambda2_grid)
 
   if (use_2d) {
     # --- 2D sensitivity sweep ---
-    grid <- expand.grid(lambda1 = lambda1_grid, lambda2 = lambda2_grid,
-                        KEEP.OUT.ATTRS = FALSE)
+    grid <- expand.grid(
+      lambda1 = lambda1_grid, lambda2 = lambda2_grid,
+      KEEP.OUT.ATTRS = FALSE
+    )
     results <- vector("list", nrow(grid))
     for (g in seq_len(nrow(grid))) {
       l1 <- grid$lambda1[g]
       l2 <- grid$lambda2[g]
-      message(sprintf("Fitting lambda1 = %g, lambda2 = %g (%d/%d)",
-                      l1, l2, g, nrow(grid)))
-      results[[g]] <- fit_ei(data, method = "rxc",
-                             lambda1 = l1, lambda2 = l2, ...)
+      message(sprintf(
+        "Fitting lambda1 = %g, lambda2 = %g (%d/%d)",
+        l1, l2, g, nrow(grid)
+      ))
+      results[[g]] <- fit_ei(data,
+        method = "rxc",
+        lambda1 = l1, lambda2 = l2, ...
+      )
     }
 
     # Build a 4D array: [group, candidate, lambda1_idx, lambda2_idx]
     pe <- results[[1]]$estimates$point
     arr <- array(NA_real_,
-                 dim = c(nrow(pe), ncol(pe),
-                         length(lambda1_grid), length(lambda2_grid)),
-                 dimnames = list(rownames(pe), colnames(pe),
-                                 paste0("l1_", lambda1_grid),
-                                 paste0("l2_", lambda2_grid)))
+      dim = c(
+        nrow(pe), ncol(pe),
+        length(lambda1_grid), length(lambda2_grid)
+      ),
+      dimnames = list(
+        rownames(pe), colnames(pe),
+        paste0("l1_", lambda1_grid),
+        paste0("l2_", lambda2_grid)
+      )
+    )
     for (g in seq_len(nrow(grid))) {
       ri <- match(grid$lambda1[g], lambda1_grid)
       ci <- match(grid$lambda2[g], lambda2_grid)
       arr[, , ri, ci] <- results[[g]]$estimates$point
     }
 
-    list(all_results = results,
-         point_estimates = arr,
-         lambda1_grid = lambda1_grid,
-         lambda2_grid = lambda2_grid,
-         mode = "2D")
-
+    list(
+      all_results = results,
+      point_estimates = arr,
+      lambda1_grid = lambda1_grid,
+      lambda2_grid = lambda2_grid,
+      mode = "2D"
+    )
   } else {
     # --- 1D sensitivity sweep (backward compatible) ---
     results <- lapply(lambda_grid, function(lam) {
       message("Fitting with lambda = ", lam)
-      fit_ei(data, method = "rxc",
-             lambda1 = lam, lambda2 = lam, ...)
+      fit_ei(data,
+        method = "rxc",
+        lambda1 = lam, lambda2 = lam, ...
+      )
     })
 
     pe <- results[[1]]$estimates$point
     arr <- array(NA_real_,
-                 dim = c(nrow(pe), ncol(pe), length(lambda_grid)),
-                 dimnames = list(rownames(pe), colnames(pe),
-                                 paste0("lambda_", lambda_grid)))
+      dim = c(nrow(pe), ncol(pe), length(lambda_grid)),
+      dimnames = list(
+        rownames(pe), colnames(pe),
+        paste0("lambda_", lambda_grid)
+      )
+    )
     for (i in seq_along(results)) {
       arr[, , i] <- results[[i]]$estimates$point
     }
 
-    list(all_results = results,
-         point_estimates = arr,
-         lambda_grid = lambda_grid,
-         mode = "1D")
+    list(
+      all_results = results,
+      point_estimates = arr,
+      lambda_grid = lambda_grid,
+      mode = "1D"
+    )
   }
 }
 
@@ -131,29 +151,37 @@ sensitivity_sweep <- function(data,
 #'
 #' @examples
 #' \dontrun{
-#' truth <- matrix(c(0.80, 0.20, 0.15, 0.85), nrow = 2, byrow = TRUE,
-#'                 dimnames = list(c("white", "black"),
-#'                                 c("cand_A", "cand_B")))
+#' truth <- matrix(c(0.80, 0.20, 0.15, 0.85),
+#'   nrow = 2, byrow = TRUE,
+#'   dimnames = list(
+#'     c("white", "black"),
+#'     c("cand_A", "cand_B")
+#'   )
+#' )
 #' dat <- simulate_election(n_precincts = 40, true_support = truth, seed = 1)
 #'
 #' # Without calibration
-#' comp <- compare_methods(dat, truth = truth,
-#'                         sample = 20000, burnin = 5000, thin = 10)
+#' comp <- compare_methods(dat,
+#'   truth = truth,
+#'   sample = 20000, burnin = 5000, thin = 10
+#' )
 #' print(comp)
 #'
 #' # With jointly calibrated lambdas
 #' comp2 <- compare_methods(dat,
-#'                          calibrated_lambda1 = 0.5,
-#'                          calibrated_lambda2 = 0.25,
-#'                          truth = truth,
-#'                          sample = 20000, burnin = 5000, thin = 10)
+#'   calibrated_lambda1 = 0.5,
+#'   calibrated_lambda2 = 0.25,
+#'   truth = truth,
+#'   sample = 20000, burnin = 5000, thin = 10
+#' )
 #' print(comp2)
 #'
 #' # Backward compatible: single lambda
 #' comp3 <- compare_methods(dat,
-#'                          calibrated_lambda = 0.5,
-#'                          truth = truth,
-#'                          sample = 20000, burnin = 5000, thin = 10)
+#'   calibrated_lambda = 0.5,
+#'   truth = truth,
+#'   sample = 20000, burnin = 5000, thin = 10
+#' )
 #' print(comp3)
 #' }
 #'
@@ -164,14 +192,14 @@ compare_methods <- function(data,
                             calibrated_lambda = NULL,
                             truth = NULL,
                             ...) {
-
   fit_default <- fit_ei(data, method = "rxc", lambda1 = 4, lambda2 = 2, ...)
-  fit_iter    <- tryCatch(fit_ei(data, method = "iter"),
-                          error = function(e) {
-                            warning("ei_iter failed: ", conditionMessage(e))
-                            NULL
-                          })
-  fit_good    <- fit_ei(data, method = "goodman")
+  fit_iter <- tryCatch(fit_ei(data, method = "iter"),
+    error = function(e) {
+      warning("ei_iter failed: ", conditionMessage(e))
+      NULL
+    }
+  )
+  fit_good <- fit_ei(data, method = "goodman")
 
   rows <- list()
   rows[["RxC (default prior)"]] <- fit_default$estimates$point
@@ -181,9 +209,11 @@ compare_methods <- function(data,
   cal_l2 <- if (!is.null(calibrated_lambda2)) calibrated_lambda2 else cal_l1
 
   if (!is.null(cal_l1)) {
-    fit_calib <- fit_ei(data, method = "rxc",
-                        lambda1 = cal_l1,
-                        lambda2 = cal_l2, ...)
+    fit_calib <- fit_ei(data,
+      method = "rxc",
+      lambda1 = cal_l1,
+      lambda2 = cal_l2, ...
+    )
     label <- if (cal_l1 == cal_l2) {
       paste0("RxC (calibrated, lambda=", cal_l1, ")")
     } else {
@@ -205,7 +235,9 @@ compare_methods <- function(data,
   flatten <- function(m) {
     v <- as.vector(m)
     names(v) <- as.vector(outer(rownames(m), colnames(m),
-                                paste, sep = "_"))
+      paste,
+      sep = "_"
+    ))
     v
   }
 

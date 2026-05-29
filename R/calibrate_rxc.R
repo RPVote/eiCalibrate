@@ -55,25 +55,33 @@
 #'
 #' @examples
 #' \dontrun{
-#' truth <- matrix(c(0.80, 0.20, 0.15, 0.85), nrow = 2, byrow = TRUE,
-#'                 dimnames = list(c("white", "black"),
-#'                                 c("cand_A", "cand_B")))
+#' truth <- matrix(c(0.80, 0.20, 0.15, 0.85),
+#'   nrow = 2, byrow = TRUE,
+#'   dimnames = list(
+#'     c("white", "black"),
+#'     c("cand_A", "cand_B")
+#'   )
+#' )
 #' calib <- simulate_election(n_precincts = 40, true_support = truth, seed = 1)
 #'
 #' # --- 2D joint calibration (recommended) ---
 #' calib_2d <- calibrate_rxc(calib, truth,
-#'                           lambda1_grid = c(0.05, 0.1, 0.25, 0.5, 1, 2, 4),
-#'                           lambda2_grid = c(0.05, 0.25, 0.5, 1, 2, 4, 8),
-#'                           n_reps = 3,
-#'                           sample = 20000, burnin = 5000, thin = 10)
-#' cat("Best (lambda1, lambda2):", calib_2d$best_lambda1, ",",
-#'     calib_2d$best_lambda2, "\n")
+#'   lambda1_grid = c(0.05, 0.1, 0.25, 0.5, 1, 2, 4),
+#'   lambda2_grid = c(0.05, 0.25, 0.5, 1, 2, 4, 8),
+#'   n_reps = 3,
+#'   sample = 20000, burnin = 5000, thin = 10
+#' )
+#' cat(
+#'   "Best (lambda1, lambda2):", calib_2d$best_lambda1, ",",
+#'   calib_2d$best_lambda2, "\n"
+#' )
 #' print(calib_2d$rmse_matrix)
 #'
 #' # --- 1D calibration (backward compatible) ---
 #' calib_1d <- calibrate_rxc(calib, truth,
-#'                           lambda_grid = c(0.1, 0.25, 0.5, 1, 2, 4),
-#'                           sample = 20000, burnin = 5000, thin = 10)
+#'   lambda_grid = c(0.1, 0.25, 0.5, 1, 2, 4),
+#'   sample = 20000, burnin = 5000, thin = 10
+#' )
 #' cat("Best lambda:", calib_1d$best_lambda, "\n")
 #' }
 #'
@@ -85,7 +93,6 @@ calibrate_rxc <- function(calib_data, calib_truth,
                           n_reps = 1,
                           loss = c("rmse", "mae", "max_err"),
                           ...) {
-
   loss <- match.arg(loss)
   n_reps <- max(as.integer(n_reps), 1L)
 
@@ -94,50 +101,64 @@ calibrate_rxc <- function(calib_data, calib_truth,
 
   if (use_2d) {
     # --- 2D joint calibration ---
-    grid <- expand.grid(lambda1 = lambda1_grid, lambda2 = lambda2_grid,
-                        KEEP.OUT.ATTRS = FALSE)
+    grid <- expand.grid(
+      lambda1 = lambda1_grid, lambda2 = lambda2_grid,
+      KEEP.OUT.ATTRS = FALSE
+    )
 
     results <- vector("list", nrow(grid))
     for (g in seq_len(nrow(grid))) {
       l1 <- grid$lambda1[g]
       l2 <- grid$lambda2[g]
-      message(sprintf("Calibrating lambda1 = %g, lambda2 = %g (config %d/%d)",
-                      l1, l2, g, nrow(grid)))
+      message(sprintf(
+        "Calibrating lambda1 = %g, lambda2 = %g (config %d/%d)",
+        l1, l2, g, nrow(grid)
+      ))
 
       rep_estimates <- vector("list", n_reps)
       for (rep in seq_len(n_reps)) {
-        fit <- fit_ei(calib_data, method = "rxc",
-                      lambda1 = l1, lambda2 = l2, ...)
+        fit <- fit_ei(calib_data,
+          method = "rxc",
+          lambda1 = l1, lambda2 = l2, ...
+        )
         rep_estimates[[rep]] <- fit$estimates$point
       }
 
       # Average across replications
       avg_est <- Reduce("+", rep_estimates) / n_reps
       score <- score_estimates(avg_est, calib_truth)
-      results[[g]] <- list(lambda1 = l1, lambda2 = l2,
-                           avg_estimates = avg_est, score = score)
+      results[[g]] <- list(
+        lambda1 = l1, lambda2 = l2,
+        avg_estimates = avg_est, score = score
+      )
     }
 
     summary_df <- data.frame(
       lambda1 = grid$lambda1,
       lambda2 = grid$lambda2,
-      rmse    = vapply(results, function(x) x$score$rmse,    numeric(1)),
-      mae     = vapply(results, function(x) x$score$mae,     numeric(1)),
+      rmse    = vapply(results, function(x) x$score$rmse, numeric(1)),
+      mae     = vapply(results, function(x) x$score$mae, numeric(1)),
       max_err = vapply(results, function(x) x$score$max_err, numeric(1))
     )
 
     best_idx <- which.min(summary_df[[loss]])
-    best_l1  <- summary_df$lambda1[best_idx]
-    best_l2  <- summary_df$lambda2[best_idx]
+    best_l1 <- summary_df$lambda1[best_idx]
+    best_l2 <- summary_df$lambda2[best_idx]
 
     # Build RMSE matrix (lambda1 on rows, lambda2 on columns)
-    rmse_mat <- matrix(summary_df$rmse, nrow = length(lambda1_grid),
-                       ncol = length(lambda2_grid), byrow = FALSE)
+    rmse_mat <- matrix(summary_df$rmse,
+      nrow = length(lambda1_grid),
+      ncol = length(lambda2_grid), byrow = FALSE
+    )
     # Fix: reshape properly from the expand.grid ordering
-    rmse_mat <- matrix(NA_real_, nrow = length(lambda1_grid),
-                       ncol = length(lambda2_grid),
-                       dimnames = list(as.character(lambda1_grid),
-                                       as.character(lambda2_grid)))
+    rmse_mat <- matrix(NA_real_,
+      nrow = length(lambda1_grid),
+      ncol = length(lambda2_grid),
+      dimnames = list(
+        as.character(lambda1_grid),
+        as.character(lambda2_grid)
+      )
+    )
     for (i in seq_len(nrow(summary_df))) {
       ri <- match(summary_df$lambda1[i], lambda1_grid)
       ci <- match(summary_df$lambda2[i], lambda2_grid)
@@ -155,7 +176,6 @@ calibrate_rxc <- function(calib_data, calib_truth,
       loss         = loss,
       mode         = "2D"
     )
-
   } else {
     # --- 1D calibration (backward compatible) ---
     results <- lapply(lambda_grid, function(lam) {
@@ -164,28 +184,32 @@ calibrate_rxc <- function(calib_data, calib_truth,
       rep_estimates <- vector("list", n_reps)
       rep_fits <- vector("list", n_reps)
       for (rep in seq_len(n_reps)) {
-        fit <- fit_ei(calib_data, method = "rxc",
-                      lambda1 = lam, lambda2 = lam, ...)
+        fit <- fit_ei(calib_data,
+          method = "rxc",
+          lambda1 = lam, lambda2 = lam, ...
+        )
         rep_estimates[[rep]] <- fit$estimates$point
         rep_fits[[rep]] <- fit
       }
 
       avg_est <- Reduce("+", rep_estimates) / n_reps
       score <- score_estimates(avg_est, calib_truth)
-      list(lambda = lam, fit = rep_fits[[1]], avg_estimates = avg_est,
-           score = score)
+      list(
+        lambda = lam, fit = rep_fits[[1]], avg_estimates = avg_est,
+        score = score
+      )
     })
 
     summary_df <- data.frame(
       lambda  = lambda_grid,
-      rmse    = vapply(results, function(x) x$score$rmse,    numeric(1)),
-      mae     = vapply(results, function(x) x$score$mae,     numeric(1)),
+      rmse    = vapply(results, function(x) x$score$rmse, numeric(1)),
+      mae     = vapply(results, function(x) x$score$mae, numeric(1)),
       max_err = vapply(results, function(x) x$score$max_err, numeric(1))
     )
 
-    best_idx    <- which.min(summary_df[[loss]])
+    best_idx <- which.min(summary_df[[loss]])
     best_lambda <- summary_df$lambda[best_idx]
-    best_fit    <- results[[best_idx]]$fit
+    best_fit <- results[[best_idx]]$fit
 
     list(
       summary      = summary_df,

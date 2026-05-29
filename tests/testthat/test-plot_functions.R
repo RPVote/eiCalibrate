@@ -22,10 +22,12 @@ test_that("plot_calibration returns ggplot for 1D input", {
 test_that("plot_calibration returns ggplot for 2D input", {
   skip_if_not_installed("ggplot2")
 
-  grid <- expand.grid(lambda1 = c(0.1, 0.5, 2),
-                       lambda2 = c(0.25, 1, 4))
+  grid <- expand.grid(
+    lambda1 = c(0.1, 0.5, 2),
+    lambda2 = c(0.25, 1, 4)
+  )
   grid$rmse <- runif(9, 0.05, 0.25)
-  grid$mae  <- grid$rmse * 0.8
+  grid$mae <- grid$rmse * 0.8
   grid$max_err <- grid$rmse * 1.5
 
   mock <- list(
@@ -43,10 +45,14 @@ test_that("plot_calibration returns ggplot for 2D input", {
 test_that("plot_sensitivity returns ggplot for 1D input", {
   skip_if_not_installed("ggplot2")
 
-  arr <- array(runif(8), dim = c(2, 2, 2),
-               dimnames = list(c("white", "black"),
-                               c("cand_A", "cand_B"),
-                               c("lambda_0.5", "lambda_2")))
+  arr <- array(runif(8),
+    dim = c(2, 2, 2),
+    dimnames = list(
+      c("white", "black"),
+      c("cand_A", "cand_B"),
+      c("lambda_0.5", "lambda_2")
+    )
+  )
 
   mock <- list(
     point_estimates = arr,
@@ -66,10 +72,14 @@ test_that("plot_sensitivity returns ggplot for 1D input", {
 test_that("plot_sensitivity errors on invalid cell", {
   skip_if_not_installed("ggplot2")
 
-  arr <- array(runif(4), dim = c(2, 2, 1),
-               dimnames = list(c("white", "black"),
-                               c("cand_A", "cand_B"),
-                               "lambda_1"))
+  arr <- array(runif(4),
+    dim = c(2, 2, 1),
+    dimnames = list(
+      c("white", "black"),
+      c("cand_A", "cand_B"),
+      "lambda_1"
+    )
+  )
 
   mock <- list(point_estimates = arr, lambda_grid = 1, mode = "1D")
   expect_error(plot_sensitivity(mock, cell = "foo_bar"), "not found")

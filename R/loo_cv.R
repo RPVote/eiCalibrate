@@ -66,15 +66,18 @@
 #'
 #' \dontrun{
 #' # --- Compare Goodman ER vs RxC Default ---
-#' cv2 <- loo_cv(dat, methods = c("goodman", "rxc_default"),
-#'               sample = 10000, burnin = 2000, thin = 5)
+#' cv2 <- loo_cv(dat,
+#'   methods = c("goodman", "rxc_default"),
+#'   sample = 10000, burnin = 2000, thin = 5
+#' )
 #' cv2$summary
 #'
 #' # --- Include calibrated RxC ---
 #' cv3 <- loo_cv(dat,
-#'               methods = c("goodman", "rxc_default", "rxc_calibrated"),
-#'               calibrated_lambda1 = 0.5, calibrated_lambda2 = 0.25,
-#'               sample = 10000, burnin = 2000, thin = 5)
+#'   methods = c("goodman", "rxc_default", "rxc_calibrated"),
+#'   calibrated_lambda1 = 0.5, calibrated_lambda2 = 0.25,
+#'   sample = 10000, burnin = 2000, thin = 5
+#' )
 #' cv3$summary
 #'
 #' # --- Visualize results ---
@@ -96,7 +99,6 @@ loo_cv <- function(data,
                    thin = 10,
                    verbose = TRUE,
                    ...) {
-
   # --- Input validation ---
   valid_methods <- c("goodman", "rxc_default", "rxc_calibrated", "iter")
   methods <- match.arg(methods, valid_methods, several.ok = TRUE)
@@ -122,10 +124,12 @@ loo_cv <- function(data,
   required_cols <- c(race_pct_cols, cand_cols, totals_col)
   missing <- setdiff(required_cols, names(data))
   if (length(missing) > 0) {
-    stop("Missing required columns in data: ", paste(missing, collapse = ", "),
-         "\nExpected race proportion columns: ", paste(race_pct_cols, collapse = ", "),
-         "\nExpected candidate columns: ", paste(cand_cols, collapse = ", "),
-         "\nExpected totals column: ", totals_col)
+    stop(
+      "Missing required columns in data: ", paste(missing, collapse = ", "),
+      "\nExpected race proportion columns: ", paste(race_pct_cols, collapse = ", "),
+      "\nExpected candidate columns: ", paste(cand_cols, collapse = ", "),
+      "\nExpected totals column: ", totals_col
+    )
   }
 
   n <- nrow(data)
@@ -138,12 +142,14 @@ loo_cv <- function(data,
     if (verbose) message(sprintf("  Fold %d/%d ...", i, n))
 
     train <- data[-i, , drop = FALSE]
-    test  <- data[i, , drop = FALSE]
+    test <- data[i, , drop = FALSE]
     actual <- test[[target_pct_col]]
 
     # Race shares for prediction weighting
     race_shares <- vapply(race_pct_cols, function(col) test[[col]],
-                          numeric(1), USE.NAMES = FALSE)
+      numeric(1),
+      USE.NAMES = FALSE
+    )
 
     fold_rows <- vector("list", length(methods))
     names(fold_rows) <- methods
@@ -153,8 +159,10 @@ loo_cv <- function(data,
 
       if (meth == "goodman") {
         fit <- tryCatch(
-          fit_ei(train, method = "goodman", race_cols = race_cols,
-                 cand_cols = cand_cols, totals_col = totals_col),
+          fit_ei(train,
+            method = "goodman", race_cols = race_cols,
+            cand_cols = cand_cols, totals_col = totals_col
+          ),
           error = function(e) NULL
         )
         if (!is.null(fit)) {
@@ -164,10 +172,12 @@ loo_cv <- function(data,
 
       if (meth == "rxc_default") {
         fit <- tryCatch(
-          fit_ei(train, method = "rxc", race_cols = race_cols,
-                 cand_cols = cand_cols, totals_col = totals_col,
-                 lambda1 = 4, lambda2 = 2,
-                 sample = sample, burnin = burnin, thin = thin, ...),
+          fit_ei(train,
+            method = "rxc", race_cols = race_cols,
+            cand_cols = cand_cols, totals_col = totals_col,
+            lambda1 = 4, lambda2 = 2,
+            sample = sample, burnin = burnin, thin = thin, ...
+          ),
           error = function(e) NULL
         )
         if (!is.null(fit)) {
@@ -177,10 +187,12 @@ loo_cv <- function(data,
 
       if (meth == "rxc_calibrated") {
         fit <- tryCatch(
-          fit_ei(train, method = "rxc", race_cols = race_cols,
-                 cand_cols = cand_cols, totals_col = totals_col,
-                 lambda1 = calibrated_lambda1, lambda2 = calibrated_lambda2,
-                 sample = sample, burnin = burnin, thin = thin, ...),
+          fit_ei(train,
+            method = "rxc", race_cols = race_cols,
+            cand_cols = cand_cols, totals_col = totals_col,
+            lambda1 = calibrated_lambda1, lambda2 = calibrated_lambda2,
+            sample = sample, burnin = burnin, thin = thin, ...
+          ),
           error = function(e) NULL
         )
         if (!is.null(fit)) {
@@ -190,8 +202,10 @@ loo_cv <- function(data,
 
       if (meth == "iter") {
         fit <- tryCatch(
-          fit_ei(train, method = "iter", race_cols = race_cols,
-                 cand_cols = cand_cols, totals_col = totals_col),
+          fit_ei(train,
+            method = "iter", race_cols = race_cols,
+            cand_cols = cand_cols, totals_col = totals_col
+          ),
           error = function(e) NULL
         )
         if (!is.null(fit)) {
@@ -200,11 +214,11 @@ loo_cv <- function(data,
       }
 
       fold_rows[[meth]] <- data.frame(
-        precinct  = i,
-        method    = meth,
+        precinct = i,
+        method = meth,
         predicted = pred,
-        actual    = actual,
-        error     = pred - actual,
+        actual = actual,
+        error = pred - actual,
         stringsAsFactors = FALSE
       )
     }
@@ -220,11 +234,11 @@ loo_cv <- function(data,
     sub <- precinct_errors[precinct_errors$method == m, ]
     valid <- !is.na(sub$error)
     data.frame(
-      method    = m,
-      rmse      = if (any(valid)) sqrt(mean(sub$error[valid]^2)) else NA_real_,
-      mae       = if (any(valid)) mean(abs(sub$error[valid])) else NA_real_,
+      method = m,
+      rmse = if (any(valid)) sqrt(mean(sub$error[valid]^2)) else NA_real_,
+      mae = if (any(valid)) mean(abs(sub$error[valid])) else NA_real_,
       n_success = sum(valid),
-      n_failed  = sum(!valid),
+      n_failed = sum(!valid),
       stringsAsFactors = FALSE
     )
   }))
@@ -233,10 +247,12 @@ loo_cv <- function(data,
   if (verbose) {
     message("\nLOO-CV Summary:")
     for (i in seq_len(nrow(summary_df))) {
-      message(sprintf("  %-20s  RMSE = %.4f  MAE = %.4f  (%d/%d succeeded)",
-                      summary_df$method[i], summary_df$rmse[i],
-                      summary_df$mae[i], summary_df$n_success[i],
-                      summary_df$n_success[i] + summary_df$n_failed[i]))
+      message(sprintf(
+        "  %-20s  RMSE = %.4f  MAE = %.4f  (%d/%d succeeded)",
+        summary_df$method[i], summary_df$rmse[i],
+        summary_df$mae[i], summary_df$n_success[i],
+        summary_df$n_success[i] + summary_df$n_failed[i]
+      ))
     }
   }
 

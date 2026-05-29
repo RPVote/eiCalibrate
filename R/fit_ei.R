@@ -46,16 +46,20 @@
 #'
 #' \dontrun{
 #' # --- RxC Bayesian with default prior (requires eiPack) ---
-#' fit_rxc <- fit_ei(dat, method = "rxc",
-#'                   sample = 20000, burnin = 5000, thin = 10)
-#' fit_rxc$estimates$point   # posterior means
-#' fit_rxc$estimates$lower   # 2.5% credible bound
-#' fit_rxc$estimates$upper   # 97.5% credible bound
+#' fit_rxc <- fit_ei(dat,
+#'   method = "rxc",
+#'   sample = 20000, burnin = 5000, thin = 10
+#' )
+#' fit_rxc$estimates$point # posterior means
+#' fit_rxc$estimates$lower # 2.5% credible bound
+#' fit_rxc$estimates$upper # 97.5% credible bound
 #'
 #' # --- RxC with calibrated (weaker) prior ---
-#' fit_cal <- fit_ei(dat, method = "rxc",
-#'                   lambda1 = 0.5, lambda2 = 0.5,
-#'                   sample = 20000, burnin = 5000, thin = 10)
+#' fit_cal <- fit_ei(dat,
+#'   method = "rxc",
+#'   lambda1 = 0.5, lambda2 = 0.5,
+#'   sample = 20000, burnin = 5000, thin = 10
+#' )
 #' fit_cal$estimates$point
 #'
 #' # --- Iterative 2x2 EI (requires eiCompare) ---
@@ -82,12 +86,11 @@ fit_ei <- function(data,
                    thin = 25,
                    verbose = FALSE,
                    ...) {
-
   method <- match.arg(method)
 
   race_count_cols <- paste0("n_", race_cols)
-  race_pct_cols   <- paste0("pct_", race_cols)
-  cand_pct_cols   <- sub("^cand_", "pct_", cand_cols)
+  race_pct_cols <- paste0("pct_", race_cols)
+  cand_pct_cols <- sub("^cand_", "pct_", cand_cols)
 
   if (method == "rxc") {
     if (!requireNamespace("eiPack", quietly = TRUE)) {
@@ -101,29 +104,34 @@ fit_ei <- function(data,
 
     fit <- eiPack::ei.MD.bayes(
       formula = fml,
-      data    = data,
-      total   = totals_col,
+      data = data,
+      total = totals_col,
       lambda1 = lambda1,
       lambda2 = lambda2,
-      sample  = sample,
-      burnin  = burnin,
-      thin    = thin,
+      sample = sample,
+      burnin = burnin,
+      thin = thin,
       ret.mcmc = TRUE,
       ...
     )
 
     est <- extract_rxc_estimates(fit,
-                                 row_names = race_count_cols,
-                                 col_names = cand_cols)
+      row_names = race_count_cols,
+      col_names = cand_cols
+    )
     # Rename to bare group/candidate names for downstream convenience
     rownames(est$point) <- race_cols
     rownames(est$lower) <- race_cols
     rownames(est$upper) <- race_cols
 
-    return(list(method = "rxc", estimates = est, fit = fit,
-                settings = list(lambda1 = lambda1, lambda2 = lambda2,
-                                sample = sample, burnin = burnin,
-                                thin = thin)))
+    return(list(
+      method = "rxc", estimates = est, fit = fit,
+      settings = list(
+        lambda1 = lambda1, lambda2 = lambda2,
+        sample = sample, burnin = burnin,
+        thin = thin
+      )
+    ))
   }
 
   if (method == "iter") {
@@ -147,8 +155,9 @@ fit_ei <- function(data,
   if (method == "goodman") {
     # Goodman's ER: regress candidate proportion on race proportions w/o intercept
     est <- matrix(NA_real_,
-                  nrow = length(race_cols), ncol = length(cand_cols),
-                  dimnames = list(race_cols, cand_cols))
+      nrow = length(race_cols), ncol = length(cand_cols),
+      dimnames = list(race_cols, cand_cols)
+    )
 
     rhs_terms <- paste(race_pct_cols, collapse = " + ")
 

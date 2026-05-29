@@ -20,22 +20,28 @@
 #'
 #' @examples
 #' \dontrun{
-#' truth <- matrix(c(0.80, 0.20, 0.15, 0.85), nrow = 2, byrow = TRUE,
-#'                 dimnames = list(c("white", "black"),
-#'                                 c("cand_A", "cand_B")))
+#' truth <- matrix(c(0.80, 0.20, 0.15, 0.85),
+#'   nrow = 2, byrow = TRUE,
+#'   dimnames = list(
+#'     c("white", "black"),
+#'     c("cand_A", "cand_B")
+#'   )
+#' )
 #' dat <- simulate_election(n_precincts = 40, true_support = truth, seed = 1)
 #'
 #' # 1D calibration + plot
 #' cal_1d <- calibrate_rxc(dat, truth,
-#'                         lambda_grid = c(0.1, 0.5, 1, 2, 4),
-#'                         sample = 10000, burnin = 2000, thin = 5)
+#'   lambda_grid = c(0.1, 0.5, 1, 2, 4),
+#'   sample = 10000, burnin = 2000, thin = 5
+#' )
 #' plot_calibration(cal_1d)
 #'
 #' # 2D calibration + heatmap
 #' cal_2d <- calibrate_rxc(dat, truth,
-#'                         lambda1_grid = c(0.1, 0.5, 1, 4),
-#'                         lambda2_grid = c(0.25, 1, 2, 8),
-#'                         sample = 10000, burnin = 2000, thin = 5)
+#'   lambda1_grid = c(0.1, 0.5, 1, 4),
+#'   lambda2_grid = c(0.25, 1, 2, 8),
+#'   sample = 10000, burnin = 2000, thin = 5
+#' )
 #' plot_calibration(cal_2d)
 #' }
 #'
@@ -58,8 +64,10 @@ plot_calibration <- function(calib_result, loss = NULL, title = NULL) {
     p <- ggplot2::ggplot(df, ggplot2::aes(x = .data$lambda, y = .data[[loss]])) +
       ggplot2::geom_line(linewidth = 0.8) +
       ggplot2::geom_point(size = 2.5) +
-      ggplot2::geom_vline(xintercept = best_lam, linetype = "dashed",
-                          color = "red", alpha = 0.6) +
+      ggplot2::geom_vline(
+        xintercept = best_lam, linetype = "dashed",
+        color = "red", alpha = 0.6
+      ) +
       ggplot2::geom_point(data = best_row, size = 4, color = "red") +
       ggplot2::scale_x_log10() +
       ggplot2::labs(
@@ -69,7 +77,6 @@ plot_calibration <- function(calib_result, loss = NULL, title = NULL) {
         subtitle = sprintf("Optimal: lambda = %g", best_lam)
       ) +
       ggplot2::theme_minimal(base_size = 12)
-
   } else {
     # --- 2D: heatmap ---
     best_l1 <- calib_result$best_lambda1
@@ -78,12 +85,16 @@ plot_calibration <- function(calib_result, loss = NULL, title = NULL) {
     df$lambda1_f <- factor(df$lambda1)
     df$lambda2_f <- factor(df$lambda2)
 
-    p <- ggplot2::ggplot(df, ggplot2::aes(x = .data$lambda2_f,
-                                           y = .data$lambda1_f,
-                                           fill = .data[[loss]])) +
+    p <- ggplot2::ggplot(df, ggplot2::aes(
+      x = .data$lambda2_f,
+      y = .data$lambda1_f,
+      fill = .data[[loss]]
+    )) +
       ggplot2::geom_tile(color = "white", linewidth = 0.5) +
-      ggplot2::scale_fill_viridis_c(option = "inferno", direction = -1,
-                                     name = toupper(loss))
+      ggplot2::scale_fill_viridis_c(
+        option = "inferno", direction = -1,
+        name = toupper(loss)
+      )
 
     # Add text values if grid is manageable
     if (nrow(df) <= 64) {
@@ -94,12 +105,16 @@ plot_calibration <- function(calib_result, loss = NULL, title = NULL) {
     }
 
     # Mark optimal cell
-    opt_df <- data.frame(lambda1_f = factor(best_l1, levels = levels(df$lambda1_f)),
-                         lambda2_f = factor(best_l2, levels = levels(df$lambda2_f)))
+    opt_df <- data.frame(
+      lambda1_f = factor(best_l1, levels = levels(df$lambda1_f)),
+      lambda2_f = factor(best_l2, levels = levels(df$lambda2_f))
+    )
     p <- p +
-      ggplot2::geom_point(data = opt_df, inherit.aes = FALSE,
-                          ggplot2::aes(x = .data$lambda2_f, y = .data$lambda1_f),
-                          shape = 4, size = 6, color = "cyan", stroke = 2) +
+      ggplot2::geom_point(
+        data = opt_df, inherit.aes = FALSE,
+        ggplot2::aes(x = .data$lambda2_f, y = .data$lambda1_f),
+        shape = 4, size = 6, color = "cyan", stroke = 2
+      ) +
       ggplot2::labs(
         x = expression(lambda[2]),
         y = expression(lambda[1]),
@@ -131,8 +146,9 @@ plot_calibration <- function(calib_result, loss = NULL, title = NULL) {
 #' \dontrun{
 #' dat <- simulate_election(n_precincts = 40, seed = 1)
 #' sweep <- sensitivity_sweep(dat,
-#'                            lambda_grid = c(0.1, 0.5, 1, 2, 4),
-#'                            sample = 10000, burnin = 2000, thin = 5)
+#'   lambda_grid = c(0.1, 0.5, 1, 2, 4),
+#'   sample = 10000, burnin = 2000, thin = 5
+#' )
 #' plot_sensitivity(sweep, cell = "black_cand_A")
 #' plot_sensitivity(sweep, cell = c("white", "cand_B"))
 #' }
@@ -167,15 +183,16 @@ plot_sensitivity <- function(sweep_result, cell, title = NULL) {
       ggplot2::geom_line(linewidth = 0.8) +
       ggplot2::geom_point(size = 2.5) +
       ggplot2::scale_x_log10() +
-      ggplot2::scale_y_continuous(limits = c(0, 1),
-                                  labels = scales::percent_format()) +
+      ggplot2::scale_y_continuous(
+        limits = c(0, 1),
+        labels = scales::percent_format()
+      ) +
       ggplot2::labs(
         x = expression(lambda ~ "(log scale)"),
         y = "Estimated Support",
         title = title %||% paste("Sensitivity:", cell_label)
       ) +
       ggplot2::theme_minimal(base_size = 12)
-
   } else {
     # --- 2D: heatmap ---
     mat <- pe[row_idx, col_idx, , ]
@@ -184,18 +201,24 @@ plot_sensitivity <- function(sweep_result, cell, title = NULL) {
     l1_vals <- as.numeric(sub("^l1_", "", l1_labels))
     l2_vals <- as.numeric(sub("^l2_", "", l2_labels))
 
-    df <- expand.grid(lambda1 = l1_vals, lambda2 = l2_vals,
-                      KEEP.OUT.ATTRS = FALSE)
+    df <- expand.grid(
+      lambda1 = l1_vals, lambda2 = l2_vals,
+      KEEP.OUT.ATTRS = FALSE
+    )
     df$estimate <- as.vector(mat)
     df$lambda1_f <- factor(df$lambda1)
     df$lambda2_f <- factor(df$lambda2)
 
-    p <- ggplot2::ggplot(df, ggplot2::aes(x = .data$lambda2_f,
-                                           y = .data$lambda1_f,
-                                           fill = .data$estimate)) +
+    p <- ggplot2::ggplot(df, ggplot2::aes(
+      x = .data$lambda2_f,
+      y = .data$lambda1_f,
+      fill = .data$estimate
+    )) +
       ggplot2::geom_tile(color = "white", linewidth = 0.5) +
-      ggplot2::scale_fill_viridis_c(option = "viridis", name = "Estimate",
-                                     labels = scales::percent_format())
+      ggplot2::scale_fill_viridis_c(
+        option = "viridis", name = "Estimate",
+        labels = scales::percent_format()
+      )
 
     if (nrow(df) <= 64) {
       p <- p + ggplot2::geom_text(
@@ -231,13 +254,19 @@ plot_sensitivity <- function(sweep_result, cell, title = NULL) {
 #'
 #' @examples
 #' \dontrun{
-#' truth <- matrix(c(0.80, 0.20, 0.15, 0.85), nrow = 2, byrow = TRUE,
-#'                 dimnames = list(c("white", "black"),
-#'                                 c("cand_A", "cand_B")))
+#' truth <- matrix(c(0.80, 0.20, 0.15, 0.85),
+#'   nrow = 2, byrow = TRUE,
+#'   dimnames = list(
+#'     c("white", "black"),
+#'     c("cand_A", "cand_B")
+#'   )
+#' )
 #' dat <- simulate_election(n_precincts = 40, true_support = truth, seed = 1)
-#' comp <- compare_methods(dat, calibrated_lambda1 = 0.5,
-#'                         calibrated_lambda2 = 0.25, truth = truth,
-#'                         sample = 10000, burnin = 2000, thin = 5)
+#' comp <- compare_methods(dat,
+#'   calibrated_lambda1 = 0.5,
+#'   calibrated_lambda2 = 0.25, truth = truth,
+#'   sample = 10000, burnin = 2000, thin = 5
+#' )
 #' plot_comparison(comp)
 #' }
 #'
@@ -246,15 +275,17 @@ plot_comparison <- function(comparison_result, title = NULL) {
   check_ggplot2()
 
   if (!"method" %in% names(comparison_result)) {
-    stop("Input must be a data frame with a 'method' column ",
-         "(output from compare_methods()).")
+    stop(
+      "Input must be a data frame with a 'method' column ",
+      "(output from compare_methods())."
+    )
   }
 
   # Reshape to long format using base R
   cell_cols <- setdiff(names(comparison_result), "method")
   long <- data.frame(
-    method   = rep(comparison_result$method, each = length(cell_cols)),
-    cell     = rep(cell_cols, times = nrow(comparison_result)),
+    method = rep(comparison_result$method, each = length(cell_cols)),
+    cell = rep(cell_cols, times = nrow(comparison_result)),
     estimate = as.vector(t(as.matrix(comparison_result[, cell_cols, drop = FALSE]))),
     stringsAsFactors = FALSE
   )
@@ -264,18 +295,22 @@ plot_comparison <- function(comparison_result, title = NULL) {
 
   # Extract truth if present for reference lines
   truth_rows <- long[long$method == "Truth", ]
-  est_rows   <- long[long$method != "Truth", ]
+  est_rows <- long[long$method != "Truth", ]
 
   # Order methods: put Truth last
   meth_levels <- unique(comparison_result$method)
-  meth_levels <- c(setdiff(meth_levels, "Truth"),
-                   intersect(meth_levels, "Truth"))
+  meth_levels <- c(
+    setdiff(meth_levels, "Truth"),
+    intersect(meth_levels, "Truth")
+  )
   long$method <- factor(long$method, levels = rev(meth_levels))
 
-  p <- ggplot2::ggplot(long, ggplot2::aes(x = .data$estimate,
-                                           y = .data$method)) +
+  p <- ggplot2::ggplot(long, ggplot2::aes(
+    x = .data$estimate,
+    y = .data$method
+  )) +
     ggplot2::geom_point(size = 3, ggplot2::aes(color = .data$method)) +
-    ggplot2::facet_wrap(~ cell, scales = "free_x") +
+    ggplot2::facet_wrap(~cell, scales = "free_x") +
     ggplot2::scale_x_continuous(labels = scales::percent_format()) +
     ggplot2::labs(
       x = "Estimated Support",
@@ -321,8 +356,10 @@ plot_comparison <- function(comparison_result, title = NULL) {
 #'
 #' \dontrun{
 #' # --- Compare methods ---
-#' cv2 <- loo_cv(dat, methods = c("goodman", "rxc_default"),
-#'               sample = 10000, burnin = 2000, thin = 5)
+#' cv2 <- loo_cv(dat,
+#'   methods = c("goodman", "rxc_default"),
+#'   sample = 10000, burnin = 2000, thin = 5
+#' )
 #' plot_loocv(cv2, type = "summary")
 #' plot_loocv(cv2, type = "precinct")
 #' }
@@ -343,21 +380,30 @@ plot_loocv <- function(loocv_result, type = c("summary", "precinct"),
 
     # Reshape to long
     long <- rbind(
-      data.frame(method = sm$method, metric = "RMSE", value = sm$rmse,
-                 stringsAsFactors = FALSE),
-      data.frame(method = sm$method, metric = "MAE", value = sm$mae,
-                 stringsAsFactors = FALSE)
+      data.frame(
+        method = sm$method, metric = "RMSE", value = sm$rmse,
+        stringsAsFactors = FALSE
+      ),
+      data.frame(
+        method = sm$method, metric = "MAE", value = sm$mae,
+        stringsAsFactors = FALSE
+      )
     )
 
-    p <- ggplot2::ggplot(long, ggplot2::aes(x = .data$method,
-                                             y = .data$value,
-                                             fill = .data$metric)) +
+    p <- ggplot2::ggplot(long, ggplot2::aes(
+      x = .data$method,
+      y = .data$value,
+      fill = .data$metric
+    )) +
       ggplot2::geom_col(position = "dodge", width = 0.7) +
       ggplot2::geom_text(ggplot2::aes(label = sprintf("%.4f", .data$value)),
-                         position = ggplot2::position_dodge(width = 0.7),
-                         vjust = -0.3, size = 3) +
-      ggplot2::scale_fill_manual(values = c("RMSE" = "steelblue",
-                                             "MAE" = "coral")) +
+        position = ggplot2::position_dodge(width = 0.7),
+        vjust = -0.3, size = 3
+      ) +
+      ggplot2::scale_fill_manual(values = c(
+        "RMSE" = "steelblue",
+        "MAE" = "coral"
+      )) +
       ggplot2::labs(
         x = NULL,
         y = "Error",
@@ -365,18 +411,21 @@ plot_loocv <- function(loocv_result, type = c("summary", "precinct"),
         title = title %||% "LOO-CV: Prediction Accuracy by Method"
       ) +
       ggplot2::theme_minimal(base_size = 12)
-
   } else {
     # --- Per-precinct error dot plot ---
     pe <- loocv_result$precinct_errors
     pe <- pe[!is.na(pe$error), ]
 
-    p <- ggplot2::ggplot(pe, ggplot2::aes(x = .data$precinct,
-                                           y = .data$error,
-                                           color = .data$method)) +
+    p <- ggplot2::ggplot(pe, ggplot2::aes(
+      x = .data$precinct,
+      y = .data$error,
+      color = .data$method
+    )) +
       ggplot2::geom_hline(yintercept = 0, linetype = "dashed", alpha = 0.5) +
-      ggplot2::geom_point(size = 2.5, alpha = 0.8,
-                          position = ggplot2::position_dodge(width = 0.4)) +
+      ggplot2::geom_point(
+        size = 2.5, alpha = 0.8,
+        position = ggplot2::position_dodge(width = 0.4)
+      ) +
       ggplot2::labs(
         x = "Precinct",
         y = "Prediction Error (predicted - actual)",
@@ -397,12 +446,16 @@ plot_loocv <- function(loocv_result, type = c("summary", "precinct"),
 #' @noRd
 check_ggplot2 <- function() {
   if (!requireNamespace("ggplot2", quietly = TRUE)) {
-    stop("Package 'ggplot2' is required for plotting. ",
-         "Install it with: install.packages('ggplot2')")
+    stop(
+      "Package 'ggplot2' is required for plotting. ",
+      "Install it with: install.packages('ggplot2')"
+    )
   }
   if (!requireNamespace("scales", quietly = TRUE)) {
-    stop("Package 'scales' is required for plotting. ",
-         "Install it with: install.packages('scales')")
+    stop(
+      "Package 'scales' is required for plotting. ",
+      "Install it with: install.packages('scales')"
+    )
   }
 }
 
@@ -428,21 +481,29 @@ parse_cell <- function(cell, row_names, col_names) {
     if (!found) {
       # Build available options for error message
       available <- outer(row_names, col_names, paste, sep = "_")
-      stop("Cell '", cell, "' not found. Available cells:\n  ",
-           paste(as.vector(available), collapse = ", "))
+      stop(
+        "Cell '", cell, "' not found. Available cells:\n  ",
+        paste(as.vector(available), collapse = ", ")
+      )
     }
   } else {
-    stop("cell must be a length-1 string ('group_candidate') or ",
-         "length-2 vector c('group', 'candidate').")
+    stop(
+      "cell must be a length-1 string ('group_candidate') or ",
+      "length-2 vector c('group', 'candidate')."
+    )
   }
 
   if (!row_idx %in% row_names) {
-    stop("Row '", row_idx, "' not found. Available: ",
-         paste(row_names, collapse = ", "))
+    stop(
+      "Row '", row_idx, "' not found. Available: ",
+      paste(row_names, collapse = ", ")
+    )
   }
   if (!col_idx %in% col_names) {
-    stop("Column '", col_idx, "' not found. Available: ",
-         paste(col_names, collapse = ", "))
+    stop(
+      "Column '", col_idx, "' not found. Available: ",
+      paste(col_names, collapse = ", ")
+    )
   }
 
   list(row = row_idx, col = col_idx)

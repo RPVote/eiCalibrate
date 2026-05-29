@@ -60,8 +60,10 @@ library(eiCalibrate)
 dat <- simulate_election(
   n_precincts = 40,
   true_support = matrix(
-    c(0.80, 0.20,
-      0.15, 0.85),
+    c(
+      0.80, 0.20,
+      0.15, 0.85
+    ),
     nrow = 2, byrow = TRUE,
     dimnames = list(c("white", "black"), c("cand_A", "cand_B"))
   ),
@@ -87,7 +89,7 @@ consistent set of column-name arguments.
 ```{r goodman}
 fit_good <- fit_ei(
   dat,
-  method    = "goodman",
+  method = "goodman",
   race_cols = c("white", "black"),
   cand_cols = c("cand_A", "cand_B"),
   totals_col = "total"
@@ -101,7 +103,7 @@ fit_good$estimates
 ```{r iter, message = FALSE, warning = FALSE}
 fit_it <- fit_ei(
   dat,
-  method    = "iter",
+  method = "iter",
   race_cols = c("white", "black"),
   cand_cols = c("cand_A", "cand_B"),
   totals_col = "total"
@@ -241,13 +243,13 @@ comp <- compare_methods(
   calibrated_lambda1 = cal_1d$best_lambda1,
   calibrated_lambda2 = cal_1d$best_lambda2,
   truth = truth,
-  race_cols  = c("white", "black"),
-  cand_cols  = c("cand_A", "cand_B"),
+  race_cols = c("white", "black"),
+  cand_cols = c("cand_A", "cand_B"),
   totals_col = "total",
-  sample     = 10000,
-  burnin     = 5000,
-  thin       = 5,
-  verbose    = FALSE
+  sample = 10000,
+  burnin = 5000,
+  thin = 5,
+  verbose = FALSE
 )
 ```
 
@@ -287,14 +289,14 @@ precinct per method). A typical call:
 cv_all <- loo_cv(
   dat,
   methods = c("goodman", "rxc_default", "rxc_calibrated"),
-  race_cols  = c("white", "black"),
-  cand_cols  = c("cand_A", "cand_B"),
+  race_cols = c("white", "black"),
+  cand_cols = c("cand_A", "cand_B"),
   totals_col = "total",
   calibrated_lambda1 = cal_1d$best_lambda1,
   calibrated_lambda2 = cal_1d$best_lambda2,
-  sample  = 10000,
-  burnin  = 5000,
-  thin    = 5,
+  sample = 10000,
+  burnin = 5000,
+  thin = 5,
   verbose = TRUE
 )
 
